@@ -1,6 +1,11 @@
 import * as THREE from './three.module.js';
 import { OrbitControls } from './OrbitControls.js';
+import { getMaterialArray } from './texture_maps.js';
+import {generate} from './get_grid.js';
+
 var camera, controls, scene, renderer, cubes;
+let grid = generate("easy");
+console.log(grid);
 init();
 animate();
 //render(); // remove when using next line for animation loop (requestAnimationFrame)
@@ -17,7 +22,7 @@ function init() {
 	camera.lookAt(scene.position);
 	// controls
 	controls = new OrbitControls( camera, renderer.domElement );
-			controls.enableRotate = true;
+	controls.enableRotate = true;
 	//controls.addEventListener( 'change', render ); // call this only in static scenes (i.e., if there is no animation loop)
 	// controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
 	// controls.dampingFactor = 0.05;
@@ -33,21 +38,30 @@ function init() {
 	scene.add(cubes)
 
 
-
+	let small_offset = 22;
+	let extra_offset = 4;
+	let cube_size = 20;
 
 	for ( var i = 1; i <= 9; i ++ ) {
 		for(var j = 1; j <= 9; j++){
-			var geometry = new THREE.CubeGeometry( 20,20,20 );
-			var material = new THREE.MeshBasicMaterial( { flatShading: true } );
-			var cube = new THREE.Mesh( geometry, material );
+
+			let curVal = grid[i-1][j-1];
+			let materialArray = getMaterialArray(curVal, false);
+			var geometry = new THREE.CubeGeometry( cube_size,cube_size,cube_size );
+			var cube = new THREE.Mesh( geometry, materialArray );
 			cube.row = i;
 			cube.col = j;
+			cube.val = curVal;
+
 			cube.position.x = off_x;
 			cube.position.y = 0;
 			cube.position.z = off_z;
-			cube.material.color.setHex( 0xffffff );
+			// cube.material.color.setHex( 0xffffff );
 
-			off_x += 21;
+			off_x += small_offset;
+			if(j % 3 == 0){
+				off_x += extra_offset;
+			}
 			// if(i % 9 == 0){
 			// 	off_x = -90;
 			// 	off_z += 21;
@@ -59,8 +73,11 @@ function init() {
 			// scene.add( cubes );
 
 		}
+		if(i % 3 == 0){
+			off_z += extra_offset;
+		}
 		off_x = -90;
-		off_z += 21;
+		off_z += small_offset;
 	}
 	// lights
 	// var light = new THREE.AmbientLight( 0x404040 ); // soft white
@@ -80,10 +97,38 @@ function init() {
 	window.addEventListener( 'resize', onWindowResize, false );
 	window.addEventListener( 'mousemove', onMouseMove, false );
 	window.addEventListener( 'click', onClick, false );
-	
+	window.addEventListener( 'keypress', onKeyDown, false );
 
 	// window.requestAnimationFrame(render);
 }
+
+function onKeyDown(event){
+	console.log(event.keyCode)
+	if(event.keyCode == 48){//0
+		clickedObject.val = 0;
+	}else if(event.keyCode == 49){//1
+		clickedObject.val = 1;
+	}else if(event.keyCode == 50){//2
+		clickedObject.val = 2;
+	}else if(event.keyCode == 51){//3
+		clickedObject.val = 3;
+	}else if(event.keyCode == 52){//4
+		clickedObject.val = 4;
+	}else if(event.keyCode == 53){//5
+		clickedObject.val = 5;
+	}else if(event.keyCode == 54){//6
+		clickedObject.val = 6;
+	}else if(event.keyCode == 55){//7
+		clickedObject.val = 7;
+	}else if(event.keyCode == 56){//8
+		clickedObject.val = 8;
+	}else if(event.keyCode == 57){//9
+		clickedObject.val = 9;
+	}
+	let materialArray = getMaterialArray(clickedObject.val, false);
+	clickedObject.material = materialArray;
+}
+
 // function onMouseMove(event) {
 // 	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
 // 	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
@@ -116,8 +161,12 @@ function onWindowResize() {
 // }
 
 var selectedObject = null;
+var clickedObject = null;
 function onClick(){
-	console.log(selectedObject.row + ", " + selectedObject.col);
+	if(selectedObject){
+		clickedObject = selectedObject;
+		console.log(selectedObject.row + ", " + selectedObject.col);
+	}
 }
 
 function animate() {
@@ -128,7 +177,9 @@ function animate() {
 function onMouseMove( event ) {
 	event.preventDefault();
 	if ( selectedObject ) {
-		selectedObject.material.color.set( '#fff' );
+		let materialArray = getMaterialArray(selectedObject.val, false);
+		selectedObject.material = materialArray;
+		// selectedObject.material.color.set( '#fff' );
 		selectedObject = null;
 	}
 	var intersects = getIntersects( event.layerX, event.layerY );
@@ -138,7 +189,8 @@ function onMouseMove( event ) {
 		} )[ 0 ];
 		if ( res && res.object ) {
 			selectedObject = res.object;
-			selectedObject.material.color.set( '#f00' );
+		let materialArray = getMaterialArray(selectedObject.val, true);
+		selectedObject.material = materialArray;
 		}
 	}
 }
