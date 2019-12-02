@@ -5,12 +5,21 @@ import {generate} from './get_grid.js';
 var camera, controls, scene, renderer, cubes, width, height;
 var sceneHUD, hudBitmap, hudTexture, cameraHUD;
 var colorPositionsMin, colorPositionsMax;
-let grid = generate("easy");
-console.log(grid);
+const tempGrid = generate("easy");
+const grid = [[0,0,0,0,0,0,0,0,0]];
+for (var i = 0; i < 9; i += 1){
+	let tempRow = [0];
+	tempGrid[i].forEach(el => {
+		tempRow.push(el);
+	});
+	grid.push(tempRow);
+}
+let userGrid = grid;
 init();
 animate();
 
 function init() {
+	console.log(grid)
 	renderer = new THREE.WebGLRenderer( { antialias: false } );
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
@@ -23,7 +32,7 @@ function init() {
 	// renderer.domElement.addEventListener( 'keyup', onKeyPress );
 
 	scene = new THREE.Scene();
-	scene.background = new THREE.Color( 0xcccccc );
+	scene.background = new THREE.Color( 0xefb5ee );
 	width = window.innerWidth;
 	height = window.innerHeight;
 	camera = new THREE.PerspectiveCamera( 60, width / height, 1, 1000 );
@@ -33,7 +42,7 @@ function init() {
 	// controls
 	controls = new OrbitControls( camera, renderer.domElement );
 	controls.enableRotate = true;
-	controls.enablePan = false;
+	controls.enablePan = true;
 	//controls.addEventListener( 'change', render ); // call this only in static scenes (i.e., if there is no animation loop)
 	// controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
 	// controls.dampingFactor = 0.05;
@@ -61,10 +70,10 @@ function init() {
 
 
 	// for(var depth=1; depth <= 9; depth++){
-		for ( var i = 1; i <= 9; i ++ ) {
-			for(var j = 1; j <= 9; j++){
+		for ( var i = 1; i < 10; i ++ ) {
+			for(var j = 1; j < 10; j++){
 
-				let curVal = grid[i-1][j-1];
+				let curVal = grid[i][j];
 				var geometry = new THREE.BoxBufferGeometry( cube_size,cube_size,cube_size );
 				var material = new THREE.MeshBasicMaterial( { color: getColor(curVal) } );
 				var cube = new THREE.Mesh( geometry, material );
@@ -203,15 +212,19 @@ function onWindowResize() {
 var hoveredObject = null;
 var clickedObject = null;
 function onClick(event){
-	console.log('click')
-	if(event.layerY > height - 50){
-		checkColorClick(event.layerX)
+	if(clickedObject){
+		// reset clicked to whatever it should be
+		clickedObject.material = new THREE.MeshBasicMaterial( {
+			color: getColor(clickedObject.latestGuess != null
+				? clickedObject.latestGuess : clickedObject.val)
+			} );
 	}
-	else if(hoveredObject){
-		//reset old clicked
-		if(clickedObject){
-			clickedObject.material = new THREE.MeshBasicMaterial( { color: getColor(clickedObject.val) } );
+	if(event.layerY > height - 50){
+		const cubeClicked = checkColorClick(event.layerX);
+		if (cubeClicked){
+			updateUserGrid(cubeClicked);
 		}
+	} else if(hoveredObject){
 		//set new clicked object
 		clickedObject = hoveredObject;
 		clickedObject.material = new THREE.MeshBasicMaterial( { color: '#cccccc' } );
@@ -220,18 +233,35 @@ function onClick(event){
 	}
 }
 
+function updateUserGrid(cubeClicked){
+	const val = cubeClicked.val;
+	const row = cubeClicked.row;
+	const col = cubeClicked.col;
+	const latestGuess = cubeClicked.latestGuess;
+
+
+	if(val === '.'){
+		userGrid[row][col] = latestGuess;
+		clickedObject.material = new THREE.MeshBasicMaterial( { color: getColor(latestGuess) } );
+		if (validatePuzzle()){
+			console.log("puzzle is correct so far! with addition " + latestGuess)
+		}
+	}
+
+
+}
+
 function checkColorClick(x_click){
-	console.log(x_click)
-	console.log(colorPositionsMax)
-	console.log(colorPositionsMin)
 	for(var i = 1; i < 10; i += 1){
 		if(colorPositionsMin[i] < x_click && colorPositionsMax[i] > x_click){
 			//change color of this square
 			if(clickedObject){
-				clickedObject.material = new THREE.MeshBasicMaterial( { color: getColor(i) } );
+				clickedObject.latestGuess = i;
+				return clickedObject;
 			}
 		}
 	}
+	return null;
 }
 
 function animate() {
@@ -264,10 +294,12 @@ function onMouseMove( event ) {
 	event.preventDefault();
 	if ( hoveredObject) {
 		if(hoveredObject != clickedObject){
-			hoveredObject.material = new THREE.MeshBasicMaterial( { color: getColor(hoveredObject.val) } );
+			// reset hovered to whatever it should be
+			hoveredObject.material = new THREE.MeshBasicMaterial( {
+			color: getColor(hoveredObject.latestGuess != null
+				? hoveredObject.latestGuess : hoveredObject.val)
+			} );
 		}
-		// console.log('test')
-		// hoveredObject.material.color.set( '#fff' );
 		hoveredObject = null;
 	}
 	var intersects = getIntersects( event.layerX, event.layerY );
@@ -293,5 +325,21 @@ function getIntersects( x, y ) {
 	mouseVector.set( x, y, 0.5 );
 	raycaster.setFromCamera( mouseVector, camera );
 	return raycaster.intersectObject( cubes, true );
+}
+
+function validatePuzzle(){
+	return (checkRows() && checkCols()) && checkBoxes();
+}
+
+function checkRows(){
+	return true;
+}
+
+function checkCols(){
+	return true;
+}
+
+function checkBoxes(){
+	return true;
 }
 
